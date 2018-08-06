@@ -51,6 +51,7 @@ def generate_video_for_one_episode(epi_id, epi_result, fancy=False, plotDims=Non
         filepath = "{}frame{:04}.png".format(dirpath, frame)
         # print("Epi: {0:2d} frame {1:3d}".format(epi_id, frame))
         print("\rGenerating image {}".format(filepath), end="")
+        # print("Generating image {}".format(filepath), end="\r")
         sys.stdout.flush()
         
         # Create image
@@ -59,23 +60,22 @@ def generate_video_for_one_episode(epi_id, epi_result, fancy=False, plotDims=Non
         # close the current after the plot.
         my_plt.close()
         frame += 1;
-        
-        
-    os.chdir(dirpath)
     
-    video_name = "video_episode_{}.mp4".format(epi_id)
+    video_name = "{}video_episode_{}.mp4".format(dirpath,epi_id)
     # https://www.ostechnix.com/20-ffmpeg-commands-beginners/
     # -r – Set the frame rate. I.e the number of frames to be extracted into images per second. The default value is 25.
     # -r 30 output framerate is 30
     # https://video.stackexchange.com/questions/13066/how-to-encode-a-video-at-30-fps-from-images-taken-at-7-fps
     # -framerate 8 input frame rate is 8
+    
     subprocess.call([
-        'ffmpeg', '-framerate', '8', '-i', 'frame%04d.png', '-r', '30', '-pix_fmt', 'yuv420p',
+        'ffmpeg', '-framerate', '8', '-i', "{}frame%04d.png".format(dirpath), '-r', '30', '-pix_fmt', 'yuv420p',
         video_name
     ])
-    print("created video {}".format(video_name))
+    print("")
+    print("Created video {}".format(video_name))
     
-    for file_name in glob.glob("*.png"):
+    for file_name in glob.glob("{}*.png".format(dirpath)):
         os.remove(file_name)
     print("cleaned all image file in folder {}".format(dirpath))
       
@@ -234,6 +234,7 @@ def get_plot(results_origin, fancy=True, plotDims=None, framesMax=None):
     ax1.set_xticks(np.arange(-plotLimitXY, plotLimitXY+2, 2))
     ax1.set_yticks(np.arange(-plotLimitXY, plotLimitXY+2, 2))
     ax1.set_zticks(np.arange(0, plotLimitZ+2, 2))
+    ax1.set_title("3D Plot")
 
     '''
     # Plot rotor speeds.
@@ -255,6 +256,7 @@ def get_plot(results_origin, fancy=True, plotDims=None, framesMax=None):
     ax2.set_xlabel('t [s]')
     ax2.set_ylabel('$\\alpha$ [rad]')
     ax2.legend()
+    ax2.set_title('Angles')
 
     # Plot copter velocities.
     ax3.plot([0,results['time'][-1]], [0,0], c=[0,0,0,0.7], linewidth=0.5)
@@ -265,6 +267,7 @@ def get_plot(results_origin, fancy=True, plotDims=None, framesMax=None):
     ax3.set_xlabel('t [s]')
     ax3.set_ylabel('V [$m\,s^{1}$]')
     ax3.legend()
+    ax3.set_title('Velocities')
 
 
     # Plot copter turn rates.
