@@ -105,3 +105,5 @@ ENV/
 
 # special for this repo
 data.txt
+.videos/
+*.bin
