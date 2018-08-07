@@ -34,8 +34,12 @@ def rotateByEuler(points, xyz):
     return points
 
 
-def plot(results, fancy=True):
-    my_plt = get_plot(results, fancy=fancy)
+def plot(results, fancy=True, plotDims=None):
+    '''
+    take the result of state for episodes and plot the state development according to time
+    in a combound plot
+    '''
+    my_plt = get_plot(results, fancy=fancy, plotDims=plotDims)
     my_plt.show()
     
 def generate_video_for_one_episode(epi_id, epi_result, fancy=False, plotDims=None, skipRate=10, dirpath=None):
@@ -88,6 +92,9 @@ def generate_video_for_one_episode(epi_id, epi_result, fancy=False, plotDims=Non
       
 
 def get_plot(results_origin, fancy=True, plotDims=None, framesMax=None):
+    '''
+    the basic plot function, return a plt object
+    '''
     # pre-adjust the results with framesMax
     if not (framesMax is None):
         n = len(results_origin['x'])
@@ -106,12 +113,13 @@ def get_plot(results_origin, fancy=True, plotDims=None, framesMax=None):
             
 
     # Set up axes grid. ###############################################################
-    fig = plt.figure(figsize=(20,15))
-    ax1 = plt.subplot2grid((20, 40), (0, 0), colspan=24, rowspan=20, projection='3d')
-    ax2 = plt.subplot2grid((20, 40), (1, 28), colspan=12, rowspan=4)
-    ax3 = plt.subplot2grid((20, 40), (6, 28), colspan=12, rowspan=4)
-    ax4 = plt.subplot2grid((20, 40), (11, 28), colspan=12, rowspan=4)
-    ax5 = plt.subplot2grid((20, 40), (15, 28), colspan=12, rowspan=4)
+    fig = plt.figure(figsize=(20,20)) #20, 15
+    ax1 = plt.subplot2grid((24, 40), (0, 0), colspan=24, rowspan=24, projection='3d')
+    ax2 = plt.subplot2grid((24, 40), (1, 28), colspan=12, rowspan=4)
+    ax3 = plt.subplot2grid((24, 40), (6, 28), colspan=12, rowspan=4)
+    ax4 = plt.subplot2grid((24, 40), (11, 28), colspan=12, rowspan=4)
+    ax5 = plt.subplot2grid((24, 40), (16, 28), colspan=12, rowspan=4)
+    ax6 = plt.subplot2grid((24, 40), (21, 28), colspan=12, rowspan=4)
 
 
     # Plot 3d trajectory and copter. ##################################################
@@ -125,6 +133,7 @@ def get_plot(results_origin, fancy=True, plotDims=None, framesMax=None):
         plotLimitXY = plotDims[0]
     else:
         plotLimitXY = 14
+        
     if plotDims and plotDims[1]:
         plotLimitZ = plotDims[1]
     else:
@@ -165,9 +174,6 @@ def get_plot(results_origin, fancy=True, plotDims=None, framesMax=None):
                         [60, 180, 75, 255],
                         [255, 225, 25, 255],
                         [0, 130, 200, 255]]) / 255.
-
-
-
 
     for t in range(nTimesteps):
         # Plot copter position as dot on trajectory for each full second. ******
@@ -241,59 +247,64 @@ def get_plot(results_origin, fancy=True, plotDims=None, framesMax=None):
     ax1.set_xticks(np.arange(-plotLimitXY, plotLimitXY+2, 2))
     ax1.set_yticks(np.arange(-plotLimitXY, plotLimitXY+2, 2))
     ax1.set_zticks(np.arange(0, plotLimitZ+2, 2))
-    ax1.set_title("3D Plot")
+    ax1.set_title("3D Trajectory Plot")
 
-    '''
+    
     # Plot rotor speeds.
-    ax2.plot(results['time'], results['rotor_speed1'], label='Rotor 1 revolutions / second', c=colors[0])
-    ax2.plot(results['time'], results['rotor_speed2'], label='Rotor 2 revolutions / second', c=colors[1])
-    ax2.plot(results['time'], results['rotor_speed3'], label='Rotor 3 revolutions / second', c=colors[2])
-    ax2.plot(results['time'], results['rotor_speed4'], label='Rotor 4 revolutions / second', c=colors[3])
+    ax2.plot(results['time'], results['rotor_speed1'], label='Rotor 1', c=colors[0])
+    ax2.plot(results['time'], results['rotor_speed2'], label='Rotor 2', c=colors[1])
+    ax2.plot(results['time'], results['rotor_speed3'], label='Rotor 3', c=colors[2])
+    ax2.plot(results['time'], results['rotor_speed4'], label='Rotor 4', c=colors[3])
     ax2.set_ylim(0, 1000)
     ax2.set_xlabel('t [s]')
     ax2.set_ylabel('f [Hz]')
-    '''
+    ax2.legend()
+    ax2.set_title('Rotor Speed: revolutions / second')
+    
 
     # Plot copter angles.
-    ax2.plot([0,results['time'][-1]], [0,0], c=[0,0,0,0.7], linewidth=0.5)
-    ax2.plot(results['time'], [a if a<= np.pi else a-2*np.pi for a in results['phi']], label='$\\alpha_x$')
-    ax2.plot(results['time'], [a if a<= np.pi else a-2*np.pi for a in results['theta']], label='$\\alpha_y$')
-    ax2.plot(results['time'], [a if a<= np.pi else a-2*np.pi for a in results['psi']], label='$\\alpha_z$')
-    ax2.set_ylim(-np.pi, np.pi)
-    ax2.set_xlabel('t [s]')
-    ax2.set_ylabel('$\\alpha$ [rad]')
-    ax2.legend()
-    ax2.set_title('Angles')
+    ax3.plot([0,results['time'][-1]], [0,0], c=[0,0,0,0.7], linewidth=0.5)
+    ax3.plot(results['time'], [a if a<= np.pi else a-2*np.pi for a in results['phi']], label='$\\alpha_x$')
+    ax3.plot(results['time'], [a if a<= np.pi else a-2*np.pi for a in results['theta']], label='$\\alpha_y$')
+    ax3.plot(results['time'], [a if a<= np.pi else a-2*np.pi for a in results['psi']], label='$\\alpha_z$')
+    ax3.set_ylim(-np.pi, np.pi)
+    ax3.set_xlabel('t [s]')
+    ax3.set_ylabel('$\\alpha$ [rad]')
+    ax3.legend()
+    ax3.set_title('Angles')
 
     # Plot copter velocities.
-    ax3.plot([0,results['time'][-1]], [0,0], c=[0,0,0,0.7], linewidth=0.5)
-    ax3.plot(results['time'], results['x_velocity'], label='$V_x$')
-    ax3.plot(results['time'], results['y_velocity'], label='$V_y$')
-    ax3.plot(results['time'], results['z_velocity'], label='$V_z$')
-    ax3.set_ylim(-20, 20)
-    ax3.set_xlabel('t [s]')
-    ax3.set_ylabel('V [$m\,s^{1}$]')
-    ax3.legend()
-    ax3.set_title('Velocities')
+    ax4.plot([0,results['time'][-1]], [0,0], c=[0,0,0,0.7], linewidth=0.5)
+    ax4.plot(results['time'], results['x_velocity'], label='$V_x$')
+    ax4.plot(results['time'], results['y_velocity'], label='$V_y$')
+    ax4.plot(results['time'], results['z_velocity'], label='$V_z$')
+    ax4.set_ylim(-20, 20)
+    ax4.set_xlabel('t [s]')
+    ax4.set_ylabel('V [$m\,s^{1}$]')
+    ax4.legend()
+    ax4.set_title('Velocities')
 
 
     # Plot copter turn rates.
-    ax4.plot([0,results['time'][-1]], [0,0], c=[0,0,0,0.7], linewidth=0.5)
-    ax4.plot(results['time'], results['phi_velocity'], label='phi_velocity')
-    ax4.plot(results['time'], results['theta_velocity'], label='theta_velocity')
-    ax4.plot(results['time'], results['psi_velocity'], label='psi_velocity')
-    ax4.set_ylim(-3, 3)
-    ax4.set_xlabel('t [s]')
-    ax4.set_ylabel('$\omega$ [$rad\,s^{1}$]')
-    ax4.legend()
-
-    # Plot reward.
     ax5.plot([0,results['time'][-1]], [0,0], c=[0,0,0,0.7], linewidth=0.5)
-    ax5.plot(results['time'], results['reward'], label='Reward')
-    #ax5.set_ylim(-10, 10)
+    ax5.plot(results['time'], results['phi_velocity'], label='phi_velocity')
+    ax5.plot(results['time'], results['theta_velocity'], label='theta_velocity')
+    ax5.plot(results['time'], results['psi_velocity'], label='psi_velocity')
+    ax5.set_ylim(-3, 3)
     ax5.set_xlabel('t [s]')
-    ax5.set_ylabel('Reward')
-    #ax5.legend()
+    ax5.set_ylabel('$\omega$ [$rad\,s^{1}$]')
+    ax5.legend()
+    ax5.set_title('Angles Velocities')
+    
+    # Plot reward.
+    ax6.plot([0,results['time'][-1]], [0,0], c=[0,0,0,0.7], linewidth=0.5)
+    ax6.plot(results['time'], results['reward'], label='Reward')
+    #ax6.set_ylim(-10, 10)
+    ax6.set_xlabel('t [s]')
+    ax6.set_ylabel('Reward')
+    ax6.set_title('Rewards')
+    #ax6.legend()
+    
 
     return plt
     # Done :)
