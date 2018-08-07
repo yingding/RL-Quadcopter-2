@@ -62,19 +62,26 @@ def generate_video_for_one_episode(epi_id, epi_result, fancy=False, plotDims=Non
         frame += 1;
     
     video_name = "{}video_episode_{}.mp4".format(dirpath,epi_id)
+    
+    # clean the output video
+    if os.path.exists(video_name):
+        os.remove(video_name)
+    
     # https://www.ostechnix.com/20-ffmpeg-commands-beginners/
     # -r – Set the frame rate. I.e the number of frames to be extracted into images per second. The default value is 25.
     # -r 30 output framerate is 30
     # https://video.stackexchange.com/questions/13066/how-to-encode-a-video-at-30-fps-from-images-taken-at-7-fps
-    # -framerate 8 input frame rate is 8
-    
+    # -framerate 8 input frame rate is 8    
     subprocess.call([
         'ffmpeg', '-framerate', '8', '-i', "{}frame%04d.png".format(dirpath), '-r', '30', '-pix_fmt', 'yuv420p',
         video_name
     ])
+    
+    # progress output
     print("")
     print("Created video {}".format(video_name))
     
+    # clear the temporal image frames
     for file_name in glob.glob("{}*.png".format(dirpath)):
         os.remove(file_name)
     print("cleaned all image file in folder {}".format(dirpath))
