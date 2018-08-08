@@ -1,3 +1,9 @@
+from agents.critic import Critic
+from agents.actor import Actor
+from agents.noise_model import OUNoise
+from agents.replay_buffer import ReplayBuffer
+import numpy as np
+
 class DDPG():
     """Reinforcement Learning agent that learns using DDPG."""
     def __init__(self, task):
@@ -33,8 +39,14 @@ class DDPG():
         # Algorithm parameters
         self.gamma = 0.99  # discount factor
         self.tau = 0.01  # for soft update of target parameters
+        
+        # simple reword cash
+        self.total_reward = 0.0
+        self.best_total_reward = -np.inf
 
     def reset_episode(self):
+        self.total_reward = 0.0
+        # no reset of the self.best_total_reward since the value is needed for traning output.
         self.noise.reset()
         state = self.task.reset()
         self.last_state = state
@@ -43,7 +55,12 @@ class DDPG():
     def step(self, action, reward, next_state, done):
          # Save experience / reward
         self.memory.add(self.last_state, action, reward, next_state, done)
-
+        
+        # Keep track of rewards, cumulative reward with gamma == 1
+        self.total_reward += reward
+        if self.total_reward > self.best_total_reward:
+            self.best_total_reward = self.total_reward
+        
         # Learn, if enough samples are available in memory
         if len(self.memory) > self.batch_size:
             experiences = self.memory.sample()
