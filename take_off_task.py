@@ -36,21 +36,31 @@ class Takeoff():
 
         # Goal
         self.target_pos = target_pos if target_pos is not None else np.array([0., 0., 10., 0., 0., 0.]) 
-        print("init_pos is {}".format(init_pose))
-        print("target_pos is {}".format(self.target_pos))
+        # print("init_pos is {}".format(init_pose))
+        # print("target_pos is {}".format(self.target_pos))
     
     def get_reward(self):
         """Uses current pose of sim to return reward."""
         
-        stay_life_cons = 0.03 # keep agent stay fly
+        stay_life_cons = 1 #0.03 # keep agent stay fly
         torques_panish_delta = self.sim.pose[3:] - np.array([0,0,0])
-        torques_panish = np.dot(torques_panish_delta, torques_panish_delta)
+        # torques_panish = np.dot(torques_panish_delta, torques_panish_delta)
+        torques_panish = abs(torques_panish_delta).sum()
+        
+        angle_gitter_panish = abs(self.sim.angular_v).sum()
+        pos_panish = (abs(self.sim.pose[:3] - self.target_pos[:3])).sum()
+        v_rapid_panish = abs(self.sim.v).sum()
         # vertical_reward = self.sim.v[2] # y_velocity up
 
-        reward = -.03*self.l2_norm_target() + -.002*(torques_panish) + stay_life_cons
+        # reward = -.003*self.l2_norm_target() -.001*(torques_panish) + stay_life_cons
         
         """Uses current pose of sim to return reward."""
         # reward = -.03*(abs(self.sim.pose[2] - self.target_pos[2])) + .005*self.sim.v[2]
+        
+        reward = 1 - 0.003*pos_panish -.0001*(torques_panish) - .0001*(angle_gitter_panish) \
+           -.0001*(v_rapid_panish)
+        
+        # print("torques panish:{} , angle gitter panish:{}, distance panish:{}".format(torques_panish, angle_gitter_panish, pos_panish), end="\r")
         reward = np.clip(reward, -1, 1)
         return reward
     
@@ -63,15 +73,21 @@ class Takeoff():
         if done and self.sim.pose[2] <= np.array([0.1])[0]:
             # crashed 
             return -50
+        elif done and self.sim.time < .5 * self.sim.runtime :
+            # stop penalty
+            return -10
         else:
             return reward
+        
+        
     def reward_by_closing(self, done, reward):
-        if not done and self.l2_norm_target() <= np.array([1])[0]:
+        if not done and self.l2_norm_target() <= np.array([0.5])[0]:
             # sphare improvement
             print("\rTargetDistanz:{}".format(self.l2_norm_target()), end="")
-            return 10 - self.l2_norm_target()
+            # to stop the training and episode, change done-> True
+            return 10 - self.l2_norm_target(), done
         else:
-            return reward
+            return reward, done
     
     def step(self, rotor_speeds):
         """Uses action to obtain next state, reward, done."""
@@ -86,7 +102,7 @@ class Takeoff():
         next_state = np.concatenate(pose_all)
         # prevent grounding to soon
         reward = self.panish_by_grounding(done, reward)
-        reward = self.reward_by_closing(done, reward)
+        reward, done = self.reward_by_closing(done, reward)
         return next_state, reward, done
 
     def reset(self):
