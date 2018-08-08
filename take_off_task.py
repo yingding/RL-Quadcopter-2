@@ -49,7 +49,9 @@ class Takeoff():
         
         angle_gitter_panish = abs(self.sim.angular_v).sum()
         pos_panish = (abs(self.sim.pose[:3] - self.target_pos[:3])).sum()
-        v_rapid_panish = abs(self.sim.v).sum()
+        v_delta = self.sim.v[:3] - np.array([0,0,10])
+        # TODO: v panishment doesn't seem to be very well
+        v_rapid_panish = np.dot(v_delta,v_delta)
         # vertical_reward = self.sim.v[2] # y_velocity up
 
         # reward = -.003*self.l2_norm_target() -.001*(torques_panish) + stay_life_cons
@@ -58,7 +60,8 @@ class Takeoff():
         # reward = -.03*(abs(self.sim.pose[2] - self.target_pos[2])) + .005*self.sim.v[2]
         
         reward = 1 - 0.003*pos_panish -.0001*(torques_panish) - .0001*(angle_gitter_panish) \
-           -.0001*(v_rapid_panish)
+           -1e-4*(v_rapid_panish)
+        # -1e-6 or -1e-8 for v_rapid panish
         
         # print("torques panish:{} , angle gitter panish:{}, distance panish:{}".format(torques_panish, angle_gitter_panish, pos_panish), end="\r")
         reward = np.clip(reward, -1, 1)
@@ -72,10 +75,10 @@ class Takeoff():
         # almost grounded    
         if done and self.sim.pose[2] <= np.array([0.1])[0]:
             # crashed 
-            return -50
+            return reward-50
         elif done and self.sim.time < .5 * self.sim.runtime :
             # stop penalty
-            return -10
+            return reward-10
         else:
             return reward
         
@@ -85,9 +88,9 @@ class Takeoff():
             # sphare improvement
             print("\rTargetDistanz:{}".format(self.l2_norm_target()), end="")
             # to stop the training and episode, change done-> True
-            return 10 - self.l2_norm_target(), done
-        else:
-            return reward, done
+            reward += 10 - self.l2_norm_target()
+        return reward, done
+    
     
     def step(self, rotor_speeds):
         """Uses action to obtain next state, reward, done."""
@@ -96,7 +99,7 @@ class Takeoff():
         for _ in range(self.action_repeat):
             # update the sim pose and velocities
             done = self.sim.next_timestep(rotor_speeds) 
-            reward += self.get_reward()
+            reward += self.get_reward() 
             pose_all.append(self.sim.pose)
         
         next_state = np.concatenate(pose_all)
