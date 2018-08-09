@@ -44,14 +44,13 @@ class Takeoff():
         
         stay_life_cons = 1 #0.03 # keep agent stay fly
         torques_panish_delta = self.sim.pose[3:] - np.array([0,0,0])
-        # torques_panish = np.dot(torques_panish_delta, torques_panish_delta)
         torques_panish = abs(torques_panish_delta).sum()
         
-        angle_gitter_panish = abs(self.sim.angular_v).sum()
-        pos_panish = (abs(self.sim.pose[:3] - self.target_pos[:3])).sum()
-        v_delta = self.sim.v[:3] - np.array([0,0,10])
+        # angle_v_panish = abs(self.sim.angular_v).sum()
+        pos_panish = (self.sim.pose[:3] - self.target_pos[:3]).sum()
+        # v_delta = (self.sim.v[:3] - np.array([0,0,10])).sum() # acceleration shall be zero
+        center_panish = (self.sim.pose[:2] - self.target_pos[:2]).sum()
         # TODO: v panishment doesn't seem to be very well
-        v_rapid_panish = np.dot(v_delta,v_delta)
         # vertical_reward = self.sim.v[2] # y_velocity up
 
         # reward = -.003*self.l2_norm_target() -.001*(torques_panish) + stay_life_cons
@@ -59,15 +58,16 @@ class Takeoff():
         """Uses current pose of sim to return reward."""
         # reward = -.03*(abs(self.sim.pose[2] - self.target_pos[2])) + .005*self.sim.v[2]
         
-        reward = 1 - 0.003*pos_panish -.0001*(torques_panish) - .0001*(angle_gitter_panish) \
-           -1e-4*(v_rapid_panish)
-        # -1e-6 or -1e-8 for v_rapid panish
+        """takeoff"""
+        reward = stay_life_cons - 3e-2*pos_panish -1e-3*(torques_panish) + .5e-4*self.sim.v[2]
+
+        """hover"""
+        # reward = -3e-3*(self.sim.pose[2] - self.target_pos[2])
         
-        # print("torques panish:{} , angle gitter panish:{}, distance panish:{}".format(torques_panish, angle_gitter_panish, pos_panish), end="\r")
         reward = np.clip(reward, -1, 1)
         return reward
     
-    def l2_norm_target(self):
+    def l2_norm_target_squared(self):
         pose_delta = self.sim.pose[:3] - self.target_pos[:3]
         return np.dot(pose_delta, pose_delta)
     
@@ -84,12 +84,13 @@ class Takeoff():
         
         
     def reward_by_closing(self, done, reward):
-        if not done and self.l2_norm_target() <= np.array([0.5])[0]:
+        """reward extra wenn the take off over the target height"""
+        # if self.sim.pose[2]-self.target_pos[2] > 0:
+        if not done and self.l2_norm_target_squared() <= np.array([5.0])[0]:
             # sphare improvement
-            print("\rTargetDistanz:{}".format(self.l2_norm_target()), end="")
             # to stop the training and episode, change done-> True
-            reward += 10 - self.l2_norm_target()
-        return reward, done
+            reward += 1
+        return reward
     
     
     def step(self, rotor_speeds):
@@ -105,7 +106,7 @@ class Takeoff():
         next_state = np.concatenate(pose_all)
         # prevent grounding to soon
         reward = self.panish_by_grounding(done, reward)
-        reward, done = self.reward_by_closing(done, reward)
+        reward = self.reward_by_closing(done, reward)
         return next_state, reward, done
 
     def reset(self):

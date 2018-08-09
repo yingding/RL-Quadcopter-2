@@ -29,7 +29,7 @@ class DDPG():
         self.exploration_mu = 0
         self.exploration_theta = 0.15
         # Y.W. changing sigma
-        self.exploration_sigma = 0.3 #0.2 # 0.3
+        self.exploration_sigma = 0.3 #0.3 #0.2 # 0.3
         self.noise = OUNoise(self.action_size, self.exploration_mu, self.exploration_theta, self.exploration_sigma)
 
         # Replay memory
@@ -42,7 +42,7 @@ class DDPG():
         self.gamma = 0.99  # discount factor
         # self.tau = 0.01  # for soft update of target parameters
         # Y.W.
-        self.tau = 0.001
+        self.tau = 0.001 # 0.001
         
         # simple reword cash
         self.total_reward = 0.0
